@@ -1,5 +1,3 @@
-#include <SpacebrewYun.h>
-
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <SPI.h>
@@ -18,25 +16,21 @@ double temp[2] = {-99,-99};
 //RF24Network network(radio);
 //RF24Mesh mesh(radio, network);
 #define nodeID 1
+const uint8_t channel = 0x40;
+
+unsigned long lastsent = 0;
+unsigned long now = 0;
+const int interval = 10000;
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
   
-  //tempSensors.begin();
+  tempSensors.begin();
 
-  //mesh.setNodeID(nodeID);
-  //mesh.begin();
+  mesh.setNodeID(nodeID);
+  mesh.begin(channel,RF24_250KBPS,60000);
   
- /* radio.begin();                          
-  radio.setChannel(0x30);
-  radio.setPALevel(RF24_PA_MAX);
-  radio.setDataRate(RF24_250KBPS);
-  radio.setAutoAck(1);                     
-  radio.setRetries(2,15);                  
-  radio.setCRCLength(RF24_CRC_8);
-  radio.openWritingPipe(addresses[0]);
-  radio.openReadingPipe(1,addresses[1]);*/
 
 }
 
@@ -46,22 +40,26 @@ String getJSON() {
     jsonObject = jsonObject + "{\"name\":\"temp" + i + "\",\n\"value\":" + temp[i] + "\n},\n";
   }
   jsonObject = jsonObject + "],\n}";
+  return jsonObject
 }
 
 void loop() {
-  //mesh.update();
+  mesh.update();
   
-  tempSensors.requestTemperatures();
-  temp[0] = tempSensors.getTempCByIndex(0);
-  temp[1] = tempSensors.getTempCByIndex(1);
+  if((now = millis()) > (lastsent + interval)){
+    tempSensors.requestTemperatures();
+    temp[0] = tempSensors.getTempCByIndex(0);
+    temp[1] = tempSensors.getTempCByIndex(1);
+    String jsonObject = getJSON();
+    Serial.print(jsonObject);
+    mesh.write( &jsonObject , <header>, sizeof(jsonObject));
+    now = lastsent;
+  }
+
   
-  Serial.print(getJSON());
-  //radio.write( &temp ,sizeof(temp));
-  delay(1000);
-  
-  /*if (!mesh.checkConnection()) {
+  if (!mesh.checkConnection()) {
     Serial.println("Renewing Address");
     mesh.renewAddress();
-  }*/
+  }
 }
 
