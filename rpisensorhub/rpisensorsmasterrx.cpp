@@ -25,10 +25,10 @@ while(1) {
     String buf;
     switch(header.type){	//check wich kind of message was recieved
     
-		case 'V': network.read(header,&buf,500);	//Recieved value from sensor node
+		case 'V': network.read(header,&buf,500);	//Recieved value from sensor node,max size 500 bytes
                 printf("Recieved V type header");
                 break;
-		case 'R': network.read(header,&buf,64); 	//Recieved data request from actuator or display node
+		case 'R': network.read(header,&buf,64); 	//Recieved data request from actuator or display node, max size 64 bytes
                 printf("Recieved R type header");
                 break;		 
 		default:  network.read(header,0,0); 	//unknown meassage type
