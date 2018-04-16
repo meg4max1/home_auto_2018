@@ -1,3 +1,6 @@
+#include <Adafruit_Sensor.h>
+#include <Adafruit_AM2320.h>
+
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <SPI.h>
@@ -11,6 +14,17 @@
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature tempSensors(&oneWire);
 double temp[2] = {-99,-99};
+
+Adafruit_AM2320 am2320 = Adafruit_AM2320();
+
+struct sensor[4]{
+  String Name;
+  double Value;
+  };
+
+//sensor mySensors[4];
+
+sensor.Name = {"teich_airtemp_dallas","teich_watertemp","teich_airtemp_am2320","teich_relativeHumidity"};
 
 RF24 radio(7,8);
 RF24Network network(radio);
@@ -27,7 +41,8 @@ void setup() {
   Serial.begin(9600);
   
   tempSensors.begin();
-
+  am2320.begin();
+  
   mesh.setNodeID(nodeID);
   mesh.begin(channel,RF24_250KBPS,60000);
   
@@ -48,8 +63,12 @@ void loop() {
   
   if((now = millis()) >= (lastsent + interval)){
     tempSensors.requestTemperatures();  //Request new temp readings from the dallas temperature sensors (ds18b20)
-    temp[0] = tempSensors.getTempCByIndex(0);
-    temp[1] = tempSensors.getTempCByIndex(1);
+    
+    sensor[1].Value = tempSensors.getTempCByIndex(0);
+    sensor[2].Value = tempSensors.getTempCByIndex(1);
+    sensor[3].Value = am2320.readTemperature();
+    sensor[4].Value = am2320.readHumidity();
+    
     String jsonObject = getJSON();  //build a new JSON String with new sensor values
     Serial.print(jsonObject);
     mesh.write( &jsonObject , 'V', sizeof(jsonObject)); // send a "value" Type Message containing the jsonObject
