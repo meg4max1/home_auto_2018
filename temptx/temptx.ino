@@ -12,9 +12,9 @@ OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature tempSensors(&oneWire);
 double temp[2] = {-99,-99};
 
-//RF24 radio(7,8);
-//RF24Network network(radio);
-//RF24Mesh mesh(radio, network);
+RF24 radio(7,8);
+RF24Network network(radio);
+RF24Mesh mesh(radio, network);
 #define nodeID 1
 const uint8_t channel = 0x40;
 
@@ -40,19 +40,19 @@ String getJSON() {
     jsonObject = jsonObject + "{\"name\":\"temp" + i + "\",\n\"value\":" + temp[i] + "\n},\n";
   }
   jsonObject = jsonObject + "],\n}";
-  return jsonObject
+  return jsonObject;
 }
 
 void loop() {
   mesh.update();
   
-  if((now = millis()) > (lastsent + interval)){
-    tempSensors.requestTemperatures();
+  if((now = millis()) >= (lastsent + interval)){
+    tempSensors.requestTemperatures();  //Request new temp readings from the dallas temperature sensors (ds18b20)
     temp[0] = tempSensors.getTempCByIndex(0);
     temp[1] = tempSensors.getTempCByIndex(1);
-    String jsonObject = getJSON();
+    String jsonObject = getJSON();  //build a new JSON String with new sensor values
     Serial.print(jsonObject);
-    mesh.write( &jsonObject , <header>, sizeof(jsonObject));
+    mesh.write( &jsonObject , 'V', sizeof(jsonObject)); // send a "value" Type Message containing the jsonObject
     now = lastsent;
   }
 
