@@ -19,8 +19,8 @@ DallasTemperature tempSensors(&oneWire);
 Adafruit_AM2320 am2320 = Adafruit_AM2320();
 
 
+//const String sensorName[NUMBER_OF_SENSORS] = {"airT", "waterT"};
 const String sensorName[NUMBER_OF_SENSORS] = {"airT", "waterT", "relH"};
-
 double sensorValue[NUMBER_OF_SENSORS];
 
 RF24 radio(7,8);
@@ -44,7 +44,7 @@ void setup() {
 }
 
 String getJSON() {
-  String jsonObject = "{\"node\":\"teich\",\"dat\":[";
+  String jsonObject = "{\"node\":\"teich\",\"data\":[";
   for(int i = 0; i < NUMBER_OF_SENSORS; i++){
     jsonObject = jsonObject + "{\"name\":\"" + sensorName[i] + "\",\"val\":" + sensorValue[i] + "},";
   }
@@ -62,6 +62,7 @@ void getSensorVals(){
     else{
       sensorValue[0] = ((2*airtd + airta)/3);
     }
+    //sensorValue[0] = tempSensors.getTempCByIndex(0);
     sensorValue[1] = tempSensors.getTempCByIndex(1);
     sensorValue[2] = am2320.readHumidity();
 }
@@ -73,7 +74,7 @@ void loop() {
     getSensorVals();
     String jsonObject = getJSON();  //build a new JSON String with new sensor values
     mesh.write( jsonObject.c_str() , 'V', jsonObject.length()); // send a "value" Type Message containing the jsonObject
-    Serial.println(jsonObject);
+    Serial.println(jsonObject.length());
     lastsent = millis();
   }
 
