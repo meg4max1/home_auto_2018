@@ -22,16 +22,16 @@ while(1) {
   while(network.available()){	// Check for incoming data from the sensors
     RF24NetworkHeader header;
     network.peek(header);
-    std::string buf;
-	buf.reserve(500);
+    char buf[456];
     switch(header.type){	//check which kind of message was received
     
 		case 'V': 
-				network.read(header,&buf,500);	//received value from sensor node,max size 500 bytes
+				network.read(header,&buf,456);	//received value from sensor node,max size 456 bytes, same as set in RF24Network_config.h
                 printf("received V type header\n");
+				printf(buf);
                 break;
 		case 'R': 
-				network.read(header,&buf,500); 	//received data request from actuator or display node, max size 64 bytes
+				network.read(header,&buf,456); 	//received data request from actuator or display node, max size 456 bytes
                 printf("received R type header\n");
                 break;		 
 		default:
@@ -39,7 +39,6 @@ while(1) {
                 printf("received unknown message type\n"); 
                 break;
     }
-  buf.clear();
   }
 delay(2);
   }

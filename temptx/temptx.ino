@@ -1,3 +1,6 @@
+#include <Adafruit_Sensor.h>
+#include <Adafruit_AM2320.h>
+
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <SPI.h>
@@ -10,55 +13,72 @@
 #define ONE_WIRE_BUS 2
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature tempSensors(&oneWire);
-double temp[2] = {-99,-99};
+
+#define NUMBER_OF_SENSORS 3
+
+Adafruit_AM2320 am2320 = Adafruit_AM2320();
+
+
+const String sensorName[NUMBER_OF_SENSORS] = {"airT", "waterT", "relH"};
+
+double sensorValue[NUMBER_OF_SENSORS];
 
 RF24 radio(7,8);
 RF24Network network(radio);
 RF24Mesh mesh(radio, network);
 #define nodeID 1
-const uint8_t channel = 0x40;
 
 unsigned long lastsent = 0;
-unsigned long now = 0;
-const int interval = 10000;
+#define INTERVAL 2000
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
-  
   tempSensors.begin();
-
+  am2320.begin();
+ 
   mesh.setNodeID(nodeID);
-  mesh.begin(channel,RF24_250KBPS,60000);
+  mesh.begin(0x40,RF24_250KBPS,60000);
   
 
 }
 
 String getJSON() {
-  String jsonObject = "{\n\"node\":\"teichNode\",\n\"data\":[\n";
-  for(int i = 0; i < sizeof(temp)/sizeof(*temp); i++){
-    jsonObject = jsonObject + "{\"name\":\"temp" + i + "\",\n\"value\":" + temp[i] + "\n},\n";
+  String jsonObject = "{\"node\":\"teich\",\"dat\":[";
+  for(int i = 0; i < NUMBER_OF_SENSORS; i++){
+    jsonObject = jsonObject + "{\"name\":\"" + sensorName[i] + "\",\"val\":" + sensorValue[i] + "},";
   }
-  jsonObject = jsonObject + "],\n}";
+  jsonObject = jsonObject + "],}";
   return jsonObject;
+}
+
+void getSensorVals(){
+    tempSensors.requestTemperatures();  //Request new temp readings from the dallas temperature sensors (ds18b20)
+    double airtd = tempSensors.getTempCByIndex(0);
+    double airta = am2320.readTemperature();
+    if (airtd == -127.00 || airtd == 0.00){
+      sensorValue[0] = airta;
+    }
+    else{
+      sensorValue[0] = ((2*airtd + airta)/3);
+    }
+    sensorValue[1] = tempSensors.getTempCByIndex(1);
+    sensorValue[2] = am2320.readHumidity();
 }
 
 void loop() {
   mesh.update();
   
-  if((now = millis()) >= (lastsent + interval)){
-    tempSensors.requestTemperatures();  //Request new temp readings from the dallas temperature sensors (ds18b20)
-    temp[0] = tempSensors.getTempCByIndex(0);
-    temp[1] = tempSensors.getTempCByIndex(1);
+  if((millis()) >= (lastsent + INTERVAL)){
+    getSensorVals();
     String jsonObject = getJSON();  //build a new JSON String with new sensor values
-    Serial.print(jsonObject);
-    mesh.write( &jsonObject , 'V', sizeof(jsonObject)); // send a "value" Type Message containing the jsonObject
-    now = lastsent;
+    mesh.write( jsonObject.c_str() , 'V', jsonObject.length()); // send a "value" Type Message containing the jsonObject
+    Serial.println(jsonObject);
+    lastsent = millis();
   }
 
   
   if (!mesh.checkConnection()) {
-    Serial.println("Renewing Address");
     mesh.renewAddress();
   }
 }
