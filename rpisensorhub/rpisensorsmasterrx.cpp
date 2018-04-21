@@ -35,10 +35,11 @@ while(1) {
                 printf("received R type header\n");
                 break;		 
 		default:
-				network.read(header,0,0); 	//unknown meassage type
+				network.read(header,0,0); 	//unknown message type
                 printf("received unknown message type\n"); 
                 break;
     }
+  memset(&buf[0],0,sizeof(buf));
   }
 delay(2);
   }
