@@ -7,6 +7,8 @@ RF24Mesh mesh(radio,network);
 
 const uint8_t channel = 0x40;	//nrf24l01 type channel of the mesh network
 
+std::string jsonValues;
+
 int main(int argc, char** argv) {
   
 	mesh.setNodeID(0);	// Set the nodeID to 0 for the master node
@@ -28,7 +30,8 @@ while(1) {
 		case 'V': 
 				network.read(header,&buf,456);	//received value from sensor node,max size 456 bytes, same as set in RF24Network_config.h
                 printf("received V type header\n");
-				printf(buf);
+				jsonValues = buf;
+				printf(jsonValues);
                 break;
 		case 'R': 
 				network.read(header,&buf,456); 	//received data request from actuator or display node, max size 456 bytes
